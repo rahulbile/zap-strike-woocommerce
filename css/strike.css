@@ -1,0 +1,75 @@
+
+.qrCode canvas {
+  display: block !important;
+  border: 3px solid white;
+  margin-right: auto;
+  margin-left: auto;
+  width: 170px !important;
+  height: 170px !important;
+}
+.qrCode img {
+  display: none !important;
+}
+
+#paymentRequestRefresh,
+#paymentRequestInvoiceCopy,
+#paymentInfo {
+   display: none;
+}
+ /* Strike Display form - Dark mode Styling */
+#payment .payment_methods > li .payment_method_strike {
+   box-sizing: border-box;
+   margin: 12px 0px 0px;
+   min-width: 0px;
+   border-radius: 23px;
+   height: 100%;
+   width: 100%;
+   color: gray;
+   text-align: center;
+ }
+
+ #payment .payment_methods > li .payment-method-strike-light,
+ .strike-btn-dark {
+    background-color: transparent;
+ }
+
+ #payment .payment_methods > li .payment-method-strike-dark,
+ .strike-btn-light {
+    background-color: #000 !important;
+ }
+
+ /* Strike Button Styling */
+.strike-btn {
+  box-sizing: border-box;
+  margin: 0px 0px 12px;
+  min-width: 0px;
+  appearance: none;
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+  border: 1px solid rgb(255, 255, 255);
+  font-family: Montserrat, system-ui, sans-serif;
+  line-height: 1.4;
+  font-weight: 700;
+  color: rgb(255, 255, 255);
+  font-size: 13px;
+  outline: none;
+  border-radius: 30px;
+  padding: 15px 35px;
+  cursor: pointer;
+  width: 100%;
+}
+
+ /* Slider Styling */
+.QrCodesSlider { position: relative; overflow: hidden; }
+.QrCodesSlider li { list-style: none; }
+.QrCodesSlider ul li { float: left; }
+
+#QrCodeLoader {
+  color: #fff;
+}
+
+.qrCodeExpired {
+  filter: blur(2px);
+  background-color: rgba(0, 0, 0, 0.5);
+}
