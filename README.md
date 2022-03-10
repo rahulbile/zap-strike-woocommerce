@@ -10,5 +10,21 @@ User is provided with two way to do payment, a lightning invoice and other is a 
 Installation
 
 1. Activate the plugin
-2. Under settings of the plugin set the strike username of the account to which payment should be received.
-3. Also set the strike API Key of the account.
+2. Under settings of the plugin set the strike account API key to which payment should be received.
+3. Set the preferred currency.
+
+## Screenshot
+
+  - Settings Form
+
+  ![Alt text](/images/woocommerceStrikeSettings.png?raw=true "Payment Gateway Settings")
+
+
+  - Checkout Payment Option
+
+  ![Alt text](/images/woocommerceStrikeCheckoutOption.png?raw=true "Payment Gateway Settings")
+
+
+  - Payment Lightning QR Code
+
+  ![Alt text](/images/woocommerceStrikeQRPayment.png?raw=true "Payment Gateway Settings")
