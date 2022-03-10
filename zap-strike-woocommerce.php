@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: WooCommerce Strike Payment Gateway
- * Plugin URI: https://github.com/rahulbile/zap-strike-woocommerce
+ * Plugin URI: https://github.com/LN-Zap/zap-strike-woocommerce
  * Description: Accept Bitcoin lightning / onchain Payments on WooCommerce website
  * Author: rahulbile
  * Author URI: https://github.com/rahulbile
@@ -24,6 +24,38 @@ add_action( 'woocommerce_admin_order_data_after_billing_address', 'display_strik
 
 // Displaying "Invoice ID" on email notifications
 add_action('woocommerce_email_customer_details','add_strike_invoice_id_to_emails_notifications', 15, 4 );
+
+// Add proxy end points to Strike API for invoice / quote and status request
+
+// request a invoice generation;
+add_action('rest_api_init', function() {
+  register_rest_route('strikeapi/v1', 'invoices', array(
+    'methods' => WP_REST_SERVER::CREATABLE,
+    'callback' => 'woocommerce_strike_create_invoice',
+    'args' => array(),
+    'permission_callback' => '__return_true',
+  ));
+});
+
+// Get quote for invoice
+add_action('rest_api_init', function() {
+  register_rest_route('strikeapi/v1', 'invoices/(?P<invoice_id>[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}+)/quote', array(
+    'methods' => WP_REST_SERVER::CREATABLE,
+    'callback' => 'woocommerce_strike_create_invoice_quote',
+    'args' => array(),
+    'permission_callback' => '__return_true',
+  ));
+});
+
+// get invoice status by invoice Id;
+add_action( 'rest_api_init', function() {
+	register_rest_route( 'strikeapi/v1', 'invoices/(?P<invoice_id>[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}+)', [
+		'method'   => WP_REST_Server::READABLE,
+		'permission_callback' => '__return_true',
+		'callback' => 'woocommerce_strike_get_invoice_status',
+	] );
+} );
+
 
 /*
  * Registers as a WooCommerce payment gateway
@@ -64,10 +96,10 @@ function strike_init_gateway() {
     	$this->description = $this->get_option( 'description' );
 			$this->displayMode = $this->get_option( 'displaymode' );
 			$this->strikeApiKey = $this->get_option( 'apikey' );
-			$this->strikeUsername = $this->get_option( 'username' );
+			$this->strikeApiUrl = $this->get_option( 'apiurl' );
+		//	$this->strikeUsername = $this->get_option( 'username' );
 			$this->enabled = $this->get_option( 'enabled' );
 			$this->strikeCurrency = $this->get_option( 'currency' );
-
     	add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 			add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
 	  }
@@ -116,13 +148,21 @@ function strike_init_gateway() {
     			'desc_tip'    => true,
 					'required'    => true,
     		),
-				'username' => array(
-					'title'       => 'Strike Account Username',
+				'apiurl' => array(
+					'title'       => 'API Request URL',
 					'type'        => 'text',
-					'description' => 'Strike account Username.',
+					'description' => 'This url is used to call the API SDK. Set to <yourSiteBaseURl>/wp-json/strikeapi/v1 to proxy calls',
+					'default'     => 'https://api.next.strike.me/v1',
 					'desc_tip'    => true,
 					'required'    => true,
 				),
+				// 'username' => array(
+				// 	'title'       => 'Strike Account Username',
+				// 	'type'        => 'text',
+				// 	'description' => 'Strike account Username.',
+				// 	'desc_tip'    => true,
+				// 	'required'    => true,
+				// ),
 				'currency' => array(
 					'title'       => 'Preferred Currency',
 					'label'       => 'Select Preferred Currency',
@@ -148,34 +188,14 @@ function strike_init_gateway() {
 
 		  // Add this action hook if you want your custom payment gateway to support it
 		  do_action( 'woocommerce_strike_qrcode_start', $this->id );
+      if ( !empty($this->description) ) {
+        $this->description  = trim( $this->description );
+      }
 
+			echo	'<div id="strikeInvoiceCard" class="strike-invoice-card" data-order-total="' . $amountUsd . '">
+        <div class="strike-invoice-card-message">'.
+        wpautop( wp_kses_post( $this->description ) ) . '</div></div>';
 
-			echo	'
-				<div id="QrCodeLoader" class="overlay"></div>
-		    <div id="QrSlider" class="qrCode QrCodesSlider"  data-order-total="' . $amountUsd . '">
-					<ul>
-						<li>
-							<span id="lnQrcodeAmount"></span>
-				      <a id="lnQrcodeLink" href="#">
-								<span id="lnQrcode" class="lnInvoice"></span>
-							</a>
-						</li>
-						<li>
-							<span id="onChainQrcodeAmount"></span>
-							<a id="onChainQrcodeLink" href="#">
-								<span id="onChainQrcode" class="onchainUrl"></span>
-							</a>
-						</li>
-					</ul>
-		    </div>';
-			echo '<div id="paymentInfo">Expires in <span id="expirySecond"></span> seconds</div>';
-			echo '<div class="strike-btn strike-btn-' . $this->displayMode . '" id="paymentRequestRefresh">Refresh</div>';
-			echo '<div class="strike-btn strike-btn-' . $this->displayMode . '" id="paymentRequestInvoiceCopy" data-clipboard-text="">Copy</div>';
-			if ( !empty($this->description) ) {
-				$this->description  = trim( $this->description );
-				// display the description with <p> tags etc.
-				echo wpautop( wp_kses_post( $this->description ) );
-			}
 
 		  do_action( 'woocommerce_strike_qrcode_end', $this->id );
 		}
@@ -196,26 +216,25 @@ function strike_init_gateway() {
 
 			global $woocommerce;
 			$amountUsd = $woocommerce->cart->total ? $woocommerce->cart->total : 0;
-
-			wp_enqueue_style( 'strike', plugins_url( '/css/strike.css', __FILE__, '5.6.9' ));
-			wp_enqueue_style( 'unislider', plugins_url( '/css/unslider.css', __FILE__ ));
-			wp_enqueue_style( 'unislider-dots', plugins_url( '/css/unslider-dots.css', __FILE__ ));
-
+			wp_enqueue_style( 'zap-strike-woocommerce', plugins_url( '/css/strike.css', __FILE__), array(), date("h:i:s"));
+			wp_register_script( 'zap-strike-woocommerce-strikejs', plugins_url( '/js/strike.min.js', __FILE__ ), array(), date("h:i:s") );
 			wp_register_script( 'zap-strike-woocommerce-custom', plugins_url( '/js/strike.js', __FILE__ ), array(), date("h:i:s") );
-			wp_register_script( 'zap-strike-woocommerce-qrcode', plugins_url( '/js/easy.qrcode.min.js' , __FILE__ ), array( 'jquery' ), '3.6.0', true );
-			wp_register_script( 'zap-strike-woocommerce-unislider', plugins_url( '/js/unslider-min.js' , __FILE__ ), array( 'jquery' ), '3.6.0', true );
-			wp_register_script( 'zap-strike-woocommerce-clipboard', plugins_url( '/js/clipboard.min.js' , __FILE__ ), array( 'jquery' ), '3.6.0', true );
 
+			// Set key to null if proxy endpoint is set to wordpress api
+			$apiKey = $this->strikeApiKey;
+			if(strpos($this->strikeApiUrl, 'wp-json/strikeapi/v1') !== false) {
+				$apiKey = "";
+			}
 			wp_localize_script( 'zap-strike-woocommerce-custom', 'strike_params', array(
-				'strikeApiKey' => $this->strikeApiKey,
+				'strikeApiKey' => $apiKey,
+				'strikeApiUrl' => $this->strikeApiUrl,
 				'strikeCurrency' => $this->strikeCurrency,
 				'displayMode' => $this->displayMode,
 				'totalAmount' => $amountUsd,
 			) );
+
 			wp_enqueue_script( 'zap-strike-woocommerce-custom' );
-			wp_enqueue_script( 'zap-strike-woocommerce-qrcode' );
-			wp_enqueue_script( 'zap-strike-woocommerce-unislider' );
-			wp_enqueue_script( 'zap-strike-woocommerce-clipboard' );
+			wp_enqueue_script( 'zap-strike-woocommerce-strikejs' );
 	 	}
 
 		/*
@@ -250,10 +269,10 @@ function add_strike_invoice_id_to_emails_notifications( $order, $sent_to_admin, 
 	 $order_id = method_exists( $order, 'get_id' ) ? $order->get_id() : $order->id;
 
 	 $output = '';
-	 $strikInvoiceId = get_post_meta( $order_id, '_strike_invoice_id', true );
+	 $strikeInvoiceId = get_post_meta( $order_id, '_strike_invoice_id', true );
 
-	 if ( !empty($strikInvoiceId) )
-			 $output .= '<div><strong>' . __( "Strike Invoice ID:", "woocommerce" ) . '</strong> <span class="text">' . $strikInvoiceId . '</span></div>';
+	 if ( !empty($strikeInvoiceId) )
+			 $output .= '<div><strong>' . __( "Strike Invoice ID:", "woocommerce" ) . '</strong> <span class="text">' . $strikeInvoiceId . '</span></div>';
 
 	 echo $output;
 }
@@ -261,7 +280,7 @@ function add_strike_invoice_id_to_emails_notifications( $order, $sent_to_admin, 
 function add_strike_invoice_tracking_field( $checkout ) {
 	// Output the hidden field
 	echo '<div id="strikeInvoiceIdCaptureField">
-					<input type="hidden" class="input-hidden" name="strike_invoice_id" id="strikInvoiceId" value="">
+					<input type="hidden" class="input-hidden" name="strike_invoice_id" id="strikeInvoiceId" value="">
 	</div>';
 }
 
@@ -292,3 +311,93 @@ function strike_plugin_add_settings_link( $links ) {
 }
 $plugin = plugin_basename( __FILE__ );
 add_filter( "plugin_action_links_$plugin", 'strike_plugin_add_settings_link' );
+
+
+
+// Strike API proxry requests
+
+// Create invoice
+function woocommerce_strike_create_invoice( $request ) {
+	$payParams   = $request->get_body();
+	// Make API Request and get invoice generated
+	$strikeApiKey = woocommerce_strike_get_settings('apikey');
+	$strikeApiUrl = 'https://api.strike.me/v1';
+	$args = array(
+	  'timeout'    => 10,
+	  // Add a couple of custom HTTP headers
+	  'headers'    => array(
+	     'Content-Type' => 'application/json; charset=utf-8',
+	     'Authorization' => 'Bearer ' . $strikeApiKey,
+	  ),
+		'body' => $payParams,
+	);
+
+	$invoice = wp_remote_post( $strikeApiUrl . "/invoices", $args );
+
+	if ( empty( $invoice ) ) {
+		return new WP_REST_Response( [
+			'message' => 'Invoice with specified Id was not found',
+		], 400 );
+	}
+  nocache_headers();
+	$invoiceResponse = json_decode(wp_remote_retrieve_body($invoice), true);
+	return new WP_REST_Response( $invoiceResponse, 200 );
+}
+
+function woocommerce_strike_create_invoice_quote( $request ) {
+	$invoiceId   = $request->get_param( 'invoice_id' );
+
+	// generate a quote and pass result along with InvoiceId
+	// Make API Request and get invoice generated
+	$strikeApiKey = woocommerce_strike_get_settings('apikey');
+	$strikeApiUrl = 'https://api.strike.me/v1';
+	$args = array(
+		'timeout'    => 10,
+		// Add a couple of custom HTTP headers
+		'headers'    => array(
+			 'Content-Type' => 'application/json; charset=utf-8',
+			 'Authorization' => 'Bearer ' . $strikeApiKey,
+		),
+	);
+
+	$invoiceQuote = wp_remote_post( $strikeApiUrl . "/invoices/" . $invoiceId . "/quote" , $args );
+	if ( empty( $invoiceId ) ) {
+		return new WP_REST_Response( [
+			'message' => 'Invoice with specified Id was not found',
+		], 400 );
+	}
+  nocache_headers();
+	$invoiceQuoteResponse = json_decode(wp_remote_retrieve_body($invoiceQuote), true);
+	return new WP_REST_Response( $invoiceQuoteResponse, 200 );
+}
+
+// Get Invoice status
+function woocommerce_strike_get_invoice_status( $request ) {
+	$invoiceId   = $request->get_param( 'invoice_id' );
+	$strikeApiKey = woocommerce_strike_get_settings('apikey');
+	$strikeApiUrl = 'https://api.strike.me/v1';
+	$args = array(
+	  'timeout'    => 10,
+	  // Add a couple of custom HTTP headers
+	  'headers'    => array(
+	     'Content-Type' => 'application/json; charset=utf-8',
+	     'Authorization' => 'Bearer ' . $strikeApiKey
+	  ),
+	);
+
+	$invoiceStatus = wp_remote_get( $strikeApiUrl . "/invoices/" . $invoiceId, $args );
+	if ( empty( $invoiceStatus ) ) {
+		return new WP_REST_Response( [
+			'message' => 'Invoice id was not found.',
+		], 400 );
+	}
+	// return the body
+  nocache_headers();
+	$invoiceStatusResponse = json_decode(wp_remote_retrieve_body($invoiceStatus), true);
+	return new WP_REST_Response( $invoiceStatusResponse, 200 );
+}
+
+function woocommerce_strike_get_settings($option) {
+	$strikeGateway = WC()->payment_gateways->payment_gateways()['strike'];
+	return $strikeGateway->get_option($option);
+}

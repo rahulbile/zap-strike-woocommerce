@@ -12,8 +12,3 @@ Installation
 1. Activate the plugin
 2. Under settings of the plugin set the strike username of the account to which payment should be received.
 3. Also set the strike API Key of the account.
-
-
-Demo :
-
-https://dev-strikeme.pantheonsite.io/
