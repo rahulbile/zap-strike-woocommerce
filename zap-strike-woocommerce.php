@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: WooCommerce Strike Payment Gateway
- * Plugin URI: https://github.com/LN-Zap/zap-strike-woocommerce
+ * Plugin URI: https://github.com/rahulbile/zap-strike-woocommerce
  * Description: Accept Bitcoin lightning / onchain Payments on WooCommerce website
  * Author: rahulbile
  * Author URI: https://github.com/rahulbile
@@ -105,8 +105,6 @@ function strike_init_gateway() {
 	  }
 
  		public function init_form_fields() {
-			wp_register_script( 'zap-strike-woocommerce-settings', plugins_url( '/js/strike.settings.js', __FILE__ ), array(), date("h:i:s") );
-			wp_enqueue_script( 'zap-strike-woocommerce-settings' );
 
       $this->form_fields = array(
     		'enabled' => array(
@@ -305,7 +303,7 @@ function display_strike_invoice_id_in_admin_order_meta( $order ) {
 
 
 function strike_plugin_add_settings_link( $links ) {
-  $settings_link = '<a href="' . admin_url( 'admin.php?page=wc-settings&tab=checkout&section=strike' ) . '">' . __( 'Settings', 'zap-stripe-woocommerce' ) . '</a>';
+  $settings_link = '<a href="' . admin_url( 'admin.php?page=wc-settings&tab=checkout&section=strike' ) . '">' . __( 'Settings', 'zap-strike-woocommerce' ) . '</a>';
   array_unshift( $links, $settings_link );
   return $links;
 }
