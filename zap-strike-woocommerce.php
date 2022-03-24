@@ -223,17 +223,21 @@ function strike_init_gateway() {
 			if(strpos($this->strikeApiUrl, 'wp-json/strikeapi/v1') !== false) {
 				$apiKey = "";
 			}
+
+      if( !function_exists('get_plugin_data') ){
+          require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+      }
       $plugin_data = get_plugin_data( __FILE__ );
       $plugin_version = $plugin_data['Version'];
 
-      wp_localize_script( 'zap-strike-woocommerce-custom', 'strike_params', array(
-      	'strikeApiKey' => $apiKey,
-      	'strikeApiUrl' => $this->strikeApiUrl,
-      	'strikeCurrency' => $this->strikeCurrency,
-      	'displayMode' => $this->displayMode,
-      	'totalAmount' => $amountUsd,
+			wp_localize_script( 'zap-strike-woocommerce-custom', 'strike_params', array(
+				'strikeApiKey' => $apiKey,
+				'strikeApiUrl' => $this->strikeApiUrl,
+				'strikeCurrency' => $this->strikeCurrency,
+				'displayMode' => $this->displayMode,
+				'totalAmount' => $amountUsd,
         'pluginVersion' => $plugin_version
-      ) );
+			) );
 
 			wp_enqueue_script( 'zap-strike-woocommerce-custom' );
 			wp_enqueue_script( 'zap-strike-woocommerce-strikejs' );
