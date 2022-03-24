@@ -9,6 +9,7 @@ jQuery(function($) {
 			var strikeApiKey = strike_params.strikeApiKey
 			var strikeApiUrl = strike_params.strikeApiUrl
 			var strikeCurrency = strike_params.strikeCurrency
+			var pluginVersion = strike_params.pluginVersion
 			var orderTotal = $("#strikeInvoiceCard").data("order-total")
 
 
@@ -17,6 +18,7 @@ jQuery(function($) {
 				'element': '#strikeInvoiceCard',
 				'amount': parseFloat(orderTotal),
 				'currency': strikeCurrency,
+				'correlationId': 'wordpress-' + pluginVersion,
 				'redirectCallback': 'paymentSuccessCalback',
 				'apiUrl': strikeApiUrl,
 				'apiKey': strikeApiKey
