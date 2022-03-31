@@ -1,7 +1,7 @@
 Bitcoin Payments - Powered by Strike
 
-Allows user to do bitcoin payments on your WooCommerce website using Strike API. 
-[Strike Js](https://github.com/rahulbile/strike-js) is used for generating the QR Code. 
+Allows user to do bitcoin payments on your WooCommerce website using Strike API.
+[Strike Js](https://github.com/rahulbile/strike-js) is used for generating the QR Code.
 
 # Description
 
@@ -20,10 +20,10 @@ For now its suggested to get a API key from Strike Account Manager with followin
 * partner.invoice.read
 * partner.invoice.create
 * partner.account.profile.read
-    
+
 In next release user will be able to authenticate via strike oAuth, generate a key and auto-populate in settings.
 
-Current version also supports API procy via wordpress internal end points so that API key is not passed via JS. For that purpose the API URl should be set to 
+Current version also supports API proxy via wordpress internal end points so that API key is not passed via JS. For that purpose the API URl should be set to 
 https://<YOURWEBSITE.com>/wp-json/strikeapi/v1, caching should be disabled for rest API.
 
 ## Screenshots
